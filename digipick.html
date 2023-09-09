@@ -162,41 +162,59 @@
 class Utilities {
 
     /**
-     * Updates the URL parameters based on the provided key-value pairs.
+     * Updates or inserts URL parameters based on provided key-value pairs.
+     * If the page is hosted on domains like htmlpreview.github.io where manipulating the actual URL is problematic,
+     * it falls back to using localStorage for preserving the parameters.
      * 
      * @param {Array} keyValuePairs - An array of key-value pairs to upsert.
      */
     updateURLParameters(keyValuePairs) {
-        // Get the current parameters from the URL
-        const params = new URLSearchParams(window.location.search);
-    
-        // Iterate over the provided key-value pairs and set them in the params object
+        // Attempt to fetch any existing parameters from localStorage. If none exist, 
+        // fall back to fetching from the current URL's search parameters.
+        const storedParams = localStorage.getItem('urlParameters');
+        const params = storedParams 
+                       ? new URLSearchParams(storedParams) 
+                       : new URLSearchParams(window.location.search);
+        
+        // Iterate over the provided key-value pairs
+        // If a key already exists, its value gets updated (hence, "upsert" - update/insert).
         keyValuePairs.forEach(pair => {
             params.set(pair.key, pair.value);
         });
-    
-        // Store the updated parameters in localStorage
+        
+        // Once we've added all the new key-value pairs, 
+        // save the entire set of parameters back to localStorage.
         localStorage.setItem('urlParameters', params.toString());
-    
-        // Update the current URL without reloading the page
+        
+        // Try updating the current browser URL without causing a page reload.
+        // This helps in preserving state in the URL for user's convenience, sharing, etc.
         try {
             window.history.replaceState({}, '', '?' + params.toString());
         } catch (error) {
-            // Handle any errors that might arise from trying to update window.history
+            // If updating the browser URL fails (e.g., due to security restrictions, 
+            // iframe sandboxing, etc.), log a warning.
+            // The parameters are still safely stored in localStorage at this point.
             console.warn("Failed to update window.history. Using localStorage as fallback.");
         }
     }
-
+    
     /**
-     * Retrieves all parameters from the URL or div fallback.
+     * Retrieves the URL parameters.
      * 
-     * @returns {URLSearchParams} The URLSearchParams object with all parameters.
+     * This function first tries to fetch the parameters directly from the URL.
+     * If the page is hosted on 'htmlpreview.github.io', it attempts to retrieve the parameters 
+     * from the localStorage instead, as URL parameters might not be accurately represented 
+     * in the browser's address bar due to how htmlpreview.github.io functions.
+     * 
+     * @returns {URLSearchParams} - An instance of URLSearchParams populated with the current parameters.
      */
     getURLParameters() {
+        // Initialize by trying to fetch parameters directly from the URL
         let urlParams = new URLSearchParams(window.location.search);
     
         // Check if the page is hosted on htmlpreview.github.io
         if (window.location.hostname.includes('htmlpreview.github.io')) {
+            // Try to get the stored parameters from localStorage
             const storedParams = localStorage.getItem('urlParameters');
             if (storedParams) {
                 urlParams = new URLSearchParams(storedParams);
