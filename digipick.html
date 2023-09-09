@@ -3,39 +3,402 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digipicker</title>
-    <style>
-        body {
-            font-family: 'Gill Sans', sans-serif;
-        }
-    </style>
+<style>
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background-color: rgb(175, 175, 175);
+        font-family: 'Gill Sans', sans-serif;
+    }
+
+    canvas {
+        position: absolute;
+        pointer-events: none;
+    }
+
+
+    #screenshotCanvas {
+        display: none;
+    }
+
+    #placementGrid .step1, 
+    #placementGrid .step2, 
+    #placementGrid .step3,
+    #placementGrid .radioOptions1,
+    #placementGrid .radioOptions2,
+    #loadImageButton {
+        flex-basis: 50%; /* Each element will take up 50% of the container's width */
+        display: flex;
+        align-items: center;
+        justify-content: flex-start; 
+        padding-left: 15px;
+    }
+
+    #loadImageButton button {
+        background-color: rgba(37, 37, 37, 0.5);
+        color: white;
+        border: 1px solid rgb(237, 237, 237);
+        border-radius: 5px;
+        padding: 10px 15px;
+        cursor: pointer;
+        outline: none;
+        transition: background-color 0.2s;
+    }
+
+    #loadImageButton button:hover {
+        background-color: rgba(37, 37, 37, 0.7);
+    }
+    
+       
+    .radioOptions1 input[type="radio"],
+    .radioOptions2 input[type="radio"] {
+        display: none;
+    }
+    
+    .radioOptions1 label,
+    .radioOptions2 label {
+        background-color: rgba(37, 37, 37, 0.5);
+        color: white;
+        border: 1px solid rgb(237, 237, 237);
+        border-radius: 5px;
+        padding: 10px 15px;
+        cursor: pointer;
+        margin-right: 10px;
+        display: inline-block;
+        transition: background-color 0.2s;
+        font-size: 18px;
+    }
+
+    .radioOptions1 label:hover,
+    .radioOptions2 label:hover {
+        background-color: rgba(37, 37, 37, 0.7);
+    }
+    
+    .radioOptions1 input[type="radio"]:checked + label,
+    .radioOptions2 input[type="radio"]:checked + label {
+        background-color: rgba(37, 37, 37);
+    }
+    
+    button {
+        font-size: 18px;
+    }
+
+        
+    #placementGrid {
+        font-size: 18px;
+        position: absolute;
+        top: 10%;
+        left: 5%; /* Adjust this to set the left positioning to 15% of the window width */
+        width: 80%;
+        height: 80%;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        row-gap: 50px;
+        justify-content: left; /* Left align children horizontally */
+    }
+
+    .radioOptions1 label,
+    .radioOptions2 label {
+        margin-left: 0;
+    }
+    
+    #loadImageButton button {
+        margin: 0;
+    }
+
+    #resultCanvas {
+        position: fixed;      /* Makes sure the canvas stays at a fixed position */
+        right: 0;             /* Align to the right edge of the viewport */
+        top: 50%;             /* Move the top edge of the canvas to the vertical center of the viewport */
+        transform: translateY(-50%);  /* Pull the canvas up by half its own height */
+        /*bottom: 0;            /* Align to the bottom edge of the viewport */
+    }
+
+</style>
 </head>
 
-<body style="background-color: gray;">
-    <a href="?r_c=2&r_r0=&dp_radius=39&dp_x=1405&dp_y=560&dp_hd=113&dp_vd=111&dp_c=4">1920 Novice (2 rings 4 picks)</a><br>
-    <a href="?r_c=2&dp_radius=39&dp_x=1405&dp_y=510&dp_hd=113&dp_vd=111&dp_c=6">1920 Advanced (2 rings 6 picks)</a><br>
-    <a href="?r_c=3&dp_radius=39&dp_x=1405&dp_y=460&dp_hd=113&dp_vd=111&dp_c=9">1920 Expert (3 rings 9 picks)</a><br>
-    <a href="?r_c=4&dp_radius=39&dp_x=1405&dp_y=410&dp_hd=113&dp_vd=111&dp_c=12">1920 Master (4 rings 12 picks)</a><br>
-    <input type="file" id="fileInput" onchange="loadImage()">
-    <label>Output:</label>
-    <textarea id="outputBox" rows="4" cols="100" style="background-color: black; color: white;"></textarea>
-    
-    <canvas id="canvas"></canvas>
-    <br></br>
+<body>
+    <canvas id="backgroundCanvas"></canvas>
+    <canvas id="screenshotCanvas"></canvas>
 
-
-
-    
+    <div id="placementGrid">
+        <div class="step1">SELECT LOCK LEVEL</div>
+        <div class="radioOptions1">
+            <input type="radio" id="novice" name="difficulty" value="NOVICE">
+            <label for="novice">NOVICE</label>
+            
+            <input type="radio" id="advanced" name="difficulty" value="ADVANCED">
+            <label for="advanced">ADVANCED</label>
+            
+            <input type="radio" id="expert" name="difficulty" value="EXPERT">
+            <label for="expert">EXPERT</label>
+            
+            <input type="radio" id="master" name="difficulty" value="MASTER">
+            <label for="master">MASTER</label>
+        </div>
+        <div class="step2">SELECT RESOLUTION</div>
+        <div class="radioOptions2">
+            <input type="radio" id="1920x1080" name="1920x1080" value="1920x1080">
+            <label for="1920x1080">1920x1080</label>
+            
+        </div>
+        <div class="step3">SELECT SCREENSHOT</div>
+        <div id="loadImageButton">
+            <button>LOAD...</button>
+            <input type="file" id="loadImageInput" style="display: none;">
+        </div>
+        
+        <canvas id="resultCanvas"></canvas>
+    </div>
     <script>
-let canvas = document.getElementById('canvas');
-let ctx = canvas.getContext('2d', { willReadFrequently: true });
+class Utilities {
 
-function outputLog(message) {
-    const outputBox = document.getElementById("outputBox");
-    outputBox.value += (outputBox.value ? '\n' : '') + message;
+    /**
+     * Updates the URL parameters based on the provided key-value pairs.
+     * 
+     * @param {Array} keyValuePairs - An array of key-value pairs to upsert.
+     */
+    updateURLParameters(keyValuePairs) {
+        // Get the current parameters from the URL
+        const params = new URLSearchParams(window.location.search);
+    
+        // Iterate over the provided key-value pairs and set them in the params object
+        keyValuePairs.forEach(pair => {
+            params.set(pair.key, pair.value);
+        });
+    
+        // Update the current URL without reloading the page
+        window.history.replaceState({}, '', '?' + params.toString());
+    }
+
+    /**
+    * Draws the colored bars on the left
+    */
+    drawLeftGraphics() {
+                
+
+    
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+        screenshotCanvas.width = window.innerWidth;
+        screenshotCanvas.height = window.innerHeight;
+        resultCanvas.width = window.innerWidth / 2;
+        resultCanvas.height = window.innerHeight / 2;
+    
+        const gradientWidth = 0.009 * window.innerWidth;
+    
+        const gradients = [
+            { color: 'rgba(41, 78, 123', name: 'gradientLeftBlue' },
+            { color: 'rgba(222, 163, 61', name: 'gradientLeftYellow' },
+            { color: 'rgba(234, 90, 40', name: 'gradientLeftOrange' },
+            { color: 'rgba(216, 0, 51', name: 'gradientLeftRed' }
+        ];
+    
+        for (let i = 0; i < gradients.length; i++) {
+            const gradient = bgCtx.createLinearGradient(gradientWidth * i, 0, gradientWidth * (i + 1), bgCanvas.height);
+            gradient.addColorStop(0, `${gradients[i].color}, 1)`);
+            gradient.addColorStop(0.8, `${gradients[i].color}, 0.2)`);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
+    
+            bgCtx.fillStyle = gradient;
+            bgCtx.fillRect(gradientWidth * i, 0, gradientWidth, bgCanvas.height);
+        }
+    }
+
+    /**
+     * Draws the gray graphics on the right
+     */
+    drawRightGraphics() {
+        // Define the bar's width and initial start point
+        const barWidth = 0.027 * window.innerWidth;
+        const initialStartX = 0.7 * window.innerWidth;
+        const startY = 0.2 * window.innerHeight;
+        
+        // Define the offset between bars
+        const offsetX = 0.005 * window.innerWidth;
+    
+        // Initial bend starting point
+        let bendStartY = 0.75 * window.innerHeight;
+    
+        // Calculate control points for the bezier curve
+        const controlPoint2XOffset = barWidth;
+        const controlPoint2YOffset = barWidth;
+    
+        // Calculate the end points after the curve, going 25% off the viewport to ensure it's off screen
+        const distanceAfterCurve = (window.innerHeight + bendStartY) + (0.25 * window.innerHeight);
+        
+        for (let i = 2; i < 8; i++) {
+            const startX = initialStartX + (i * (barWidth + offsetX));
+            
+            if (i === 2) {
+                // Draw the text "STARWARE" above the lines, 40 font size, bold
+                bgCtx.fillStyle = 'rgb(133, 133, 133)';
+                bgCtx.font = "bold 40px Arial";
+                bgCtx.textAlign = "left";
+                bgCtx.fillText("STARWARE", startX, startY - 60);
+                
+                // Draw the text "DIGIPICKER SYSTEM" below the STARWARE, 20 font size
+                bgCtx.font = "20px Arial";
+                bgCtx.fillText("DIGIPICKER SYSTEM", startX, startY - 20);
+            }
+    
+            const controlPoint1X = startX;
+            const controlPoint1Y = bendStartY + (i * (barWidth + offsetX));
+            const controlPoint2X = startX - controlPoint2XOffset;
+            const controlPoint2Y = bendStartY + controlPoint2YOffset;
+            const endX = startX - distanceAfterCurve * Math.cos(Math.PI / 4) + (i * (barWidth + offsetX)); 
+            const endY = bendStartY + distanceAfterCurve * Math.sin(Math.PI / 4); 
+            
+            bgCtx.strokeStyle = 'rgb(133, 133, 133)';
+            bgCtx.lineWidth = barWidth;
+            bgCtx.beginPath();
+            bgCtx.moveTo(startX, startY);
+            bgCtx.lineTo(startX, bendStartY);
+            bgCtx.bezierCurveTo(controlPoint1X, controlPoint1Y, controlPoint2X, controlPoint2Y, endX, endY);
+            bgCtx.stroke();
+    
+            // Adjust the bend's starting point based on the offset
+            bendStartY -= offsetX;
+        }
+    }
+
+    
 }
+        
+// CONSTANTS
+// -------------------------------------------------------        
+const utilities = new Utilities();
+const params = new URLSearchParams(window.location.search);
+
+const bgCanvas = document.getElementById('backgroundCanvas');
+const screenshotCanvas = document.getElementById('screenshotCanvas');
+const resultCanvas = document.getElementById('resultCanvas');
+
+const bgCtx = bgCanvas.getContext('2d', { willReadFrequently: true });
+const screenshotCtx = screenshotCanvas.getContext('2d', { willReadFrequently: true });
+const resultCtx = resultCanvas.getContext('2d', { willReadFrequently: true });
+        
+// Lock Level button events
+// -------------------------------------------------------
+const levelParameters = {
+    'novice': [
+        { key: 'r_c', value: 2 }, // lock rings count
+        { key: 'dp_c', value: 4 },// digipick count
+        { key: 'dp_d', value: 0 } // digipick difficulty used to get the y offset for the digipick rings
+    ],
+    'advanced': [
+        { key: 'r_c', value: 2 }, // lock rings count
+        { key: 'dp_c', value: 6 },// digipick count
+        { key: 'dp_d', value: 1 } // digipick difficulty used to get the y offset for the digipick rings
+    ],
+    'expert': [
+        { key: 'r_c', value: 3 }, // lock rings count
+        { key: 'dp_c', value: 9 }, // digipick count
+        { key: 'dp_d', value: 2 }  // digipick difficulty used to get the y offset for the digipick rings
+    ],
+    'master': [
+        { key: 'r_c', value: 4 }, // lock rings count
+        { key: 'dp_c', value: 12 }, // digipick count
+        { key: 'dp_d', value: 3 } // digipick difficulty used to get the y offset for the digipick rings
+    ]
+};
+
+for (let level in levelParameters) {
+    document.getElementById(level).addEventListener('click', function() {
+        utilities.updateURLParameters(levelParameters[level]);
+    });
+}
+
+// Resolution button events
+// -------------------------------------------------------
+const resolutionParameters = {
+    '1920x1080': [
+        { key: 'r_x', value: 960 }, // lock rings center x location
+        { key: 'r_y', value: 540 }, // lock rings center y location
+        { key: 'r_r0', value: 204 }, // outer most ring radius
+        { key: 'r_r1', value: 167 },
+        { key: 'r_r2', value: 133 },
+        { key: 'r_r3', value: 99 }, // inner most ring radius
+
+        { key: 'dp_radius', value: 39 }, // digipick ring radius
+        { key: 'dp_x', value: 1405 }, // top left digipick ring center x location
+        { key: 'dp_y0', value: 560 }, // y0 = y offset for novice difficulty
+        { key: 'dp_y1', value: 510 }, // y1 = y offset for advanced difficulty
+        { key: 'dp_y2', value: 460 }, // y2 = y offset for expert difficulty
+        { key: 'dp_y3', value: 410 }, // y3 = y offset for master difficulty
+        { key: 'dp_hd', value: 113 }, // horizontal distance between digipick circle centers
+        { key: 'dp_vd', value: 111 }  // vertical distance between digipick circle centers
+    ],
+};
+
+for (let resolution in resolutionParameters) {
+    document.getElementById(resolution).addEventListener('click', function() {
+        utilities.updateURLParameters(resolutionParameters[resolution]);
+    });
+}
+
+
+// Load button event
+// -------------------------------------------------------
+document.querySelector('#loadImageButton button').addEventListener('click', function() {
+    document.getElementById('loadImageInput').click();
+});
+
+document.getElementById('loadImageInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                screenshotCanvas.width = img.width;
+                screenshotCanvas.height = img.height;
+                screenshotCtx.clearRect(0, 0, screenshotCanvas.width, screenshotCanvas.height);
+                
+                screenshotCtx.drawImage(img, 0, 0, screenshotCanvas.width, screenshotCanvas.height);
+                resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                
+                solveLock();  // Calling the solveLock function
+
+                // Define the size and position for the cropped part
+                const trimTop = 0.2 * screenshotCanvas.height;
+                const trimBottom = 0.2 * screenshotCanvas.height;
+                const trimLeft = 0.3 * screenshotCanvas.width; // Calculate the left trim
+                
+                const drawHeight = screenshotCanvas.height - trimTop - trimBottom;
+                const drawWidth = screenshotCanvas.width - trimLeft; // Adjust the width for the cropped section
+                
+                // Calculate the aspect ratio of the cropped image section
+                const aspectRatio = drawWidth / drawHeight;
+                
+                // Adjust the size of resultCanvas to be 70% of the cropped section and maintain the aspect ratio
+                resultCanvas.width = 0.7 * drawWidth;
+                resultCanvas.height = resultCanvas.width / aspectRatio;
+                
+                // Adjust drawImage method to trim from the left side as well
+                resultCtx.drawImage(screenshotCanvas, trimLeft, trimTop, drawWidth, drawHeight, 0, 0, resultCanvas.width, resultCanvas.height);
+
+            }
+
+            img.src = event.target.result;
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+
+// Graphics
+// -------------------------------------------------------   
+utilities.drawLeftGraphics();
+utilities.drawRightGraphics();
+
+// AI Solver
+// -------------------------------------------------------
         
 function loadImage() {
     const file = document.getElementById('fileInput').files[0];
@@ -81,21 +444,21 @@ function loadImage() {
 function drawPixelWithText(x, y, text) {
     // Drawing a pixel at the specified coordinates
     if (text.endsWith('_1')) {
-        ctx.fillStyle = 'white';
+        screenshotCtx.fillStyle = 'white';
     }
 
     if (text.endsWith('_0')) {
-        ctx.fillStyle = 'red';
+        screenshotCtx.fillStyle = 'red';
     }
 
-    ctx.fillRect(x, y, 1, 1);
+    screenshotCtx.fillRect(x, y, 1, 1);
 
     // Drawing the provided text 5 pixels above the pixel
-    ctx.font = '6px sans-serif';
-    ctx.fillStyle = 'white';
+    screenshotCtx.font = '6px sans-serif';
+    screenshotCtx.fillStyle = 'white';
 
     if (!text.startsWith('!')) {
-        ctx.fillText(text, x + 4, y - 4);
+        screenshotCtx.fillText(text, x + 4, y - 4);
     }
 
     // Logging the colorText to the console
@@ -105,12 +468,6 @@ function drawPixelWithText(x, y, text) {
 function getPixelColor(x, y, context, lean) {
     let colors = [];
 
-    // // The offsets for the 8 surrounding pixels
-    // const offsets = [
-    //     [-2, -2], [0, -2], [2, -2],  // Top row
-    //     [-2, 0], [0, 0], [2, 0],  // Middle row
-    //     [-2, 2], [0, 2], [2, 2]   // Bottom row
-    // ];
     const offsets = [
         [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], // Top two rows
         [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1],
@@ -165,7 +522,7 @@ function intToPaddedBinary(num) {
     return (num >>> 0).toString(2).padStart(32, '0');
 }
 
-function getRingBits(center, radius, context) {
+function getRingBits(centerX, centerY, radius, context) {
     let bits = [];
     let totalR = 0;
     let totalG = 0;
@@ -174,10 +531,10 @@ function getRingBits(center, radius, context) {
     // Calculate the average color from the 32 sampled colors
     for (let i = 0; i < 32; i++) {
         let angle = (i * 11.25) * (Math.PI / 180);
-        let x = parseInt(center[0]) + (radius * Math.cos(angle));
-        let y = parseInt(center[1]) + (radius * Math.sin(angle));
+        let x = parseInt(centerX) + (radius * Math.cos(angle));
+        let y = parseInt(centerY) + (radius * Math.sin(angle));
 
-        let sampledColor = getPixelColor(x, y, ctx, 1); // lean = 1 to lighter pixels
+        let sampledColor = getPixelColor(x, y, screenshotCtx, 1); // lean = 1 to lighter pixels
 
         totalR += sampledColor[0];
         totalG += sampledColor[1];
@@ -190,16 +547,15 @@ function getRingBits(center, radius, context) {
     // Use the average color to determine the bit value for all the sampled colors
     for (let i = 0; i < 32; i++) {
         let angle = (i * 11.25) * (Math.PI / 180);
-        let x = parseInt(center[0]) + (radius * Math.cos(angle));
-        let y = parseInt(center[1]) + (radius * Math.sin(angle));
+        let x = parseInt(centerX) + (radius * Math.cos(angle));
+        let y = parseInt(centerY) + (radius * Math.sin(angle));
 
-        let sampledColor = getPixelColor(x, y, ctx, 1); // lean = 1 to lighter pixels
+        let sampledColor = getPixelColor(x, y, screenshotCtx, 1); // lean = 1 to lighter pixels
 
         let ringZeroColor = [25, 33, 43]; // dark gray, almost black background for blue circles
 
         let bitValue = closestToColor(sampledColor, ringZeroColor, averageColor);
 
-        // console.log(context + ':' + i + ':bitValue=' + bitValue + ':averageColor=' + averageColor + ':RGB=' + sampledColor);
         drawPixelWithText(x, y, "!" + i + "_" + bitValue); // prefix text with ! to make it not draw text
         bits.push(bitValue);
     }
@@ -219,7 +575,7 @@ function getDigiBits(centerX, centerY, radius, context) {
         let x = parseInt(centerX) + (radius * Math.cos(angle));
         let y = parseInt(centerY) + (radius * Math.sin(angle));
 
-        let sampledColor = getPixelColor(x, y, ctx, 0); // lean = 0 to darker pixels
+        let sampledColor = getPixelColor(x, y, screenshotCtx, 0); // lean = 0 to darker pixels
 
         totalR += sampledColor[0];
         totalG += sampledColor[1];
@@ -235,13 +591,12 @@ function getDigiBits(centerX, centerY, radius, context) {
         let x = parseInt(centerX) + (radius * Math.cos(angle));
         let y = parseInt(centerY) + (radius * Math.sin(angle));
 
-        let sampledColor = getPixelColor(x, y, ctx, 1); // lean = 1 to lighter pixels
+        let sampledColor = getPixelColor(x, y, screenshotCtx, 1); // lean = 1 to lighter pixels
 
         let whiteDigiColor = [183, 183, 183]; // white digi key color
 
         let bitValue = closestToColor(sampledColor, averageColor, whiteDigiColor);
 
-        // console.log(context + ':' + i + ':bitValue=' + bitValue + ':averageColor=' + averageColor + ':RGB=' + sampledColor);
         drawPixelWithText(x, y, "!" + i + "_" + bitValue);
         bits.push(bitValue);
     }
@@ -270,10 +625,6 @@ function closestToColor(testColor, zeroColor, oneColor) {
 function intToPaddedBinary(num) {
     return (num >>> 0).toString(2).padStart(32, '0');
 }
-
-// function applyOr(ringInt, digiInt) {
-//     return ringInt | digiInt;
-// }
 
 function isRingSolved(ringInt) {
     return intToPaddedBinary(ringInt) === '11111111111111111111111111111111';
@@ -320,12 +671,6 @@ function applyActionToRing(intAction, intRing) {
     // Add the intAction value to the intRing
     return intRing + intAction;
 }
-
-// function getActionEffectiveness(action, ring) {
-//     // Determine how many zeros the action can convert to ones for the given ring
-//     let result = ring | action.int;
-//     return (result - ring).toString(2).split('0').length - 1; // Count of new 1s added
-// }
 
 function recursiveSolver(actions, ring, currentActions = []) {
     if (isRingSolved(ring)) {
@@ -404,16 +749,16 @@ function hasMoreThanThreeConsecutiveZeros(str) {
     return /0000/.test(str);
 }
 
-function solvePuzzle() {
+function solveLock() {
     let rings = [];
-    let ringsInfo = getRingsInfo();
+    let ringsInfo = getRingLocations();
 
     let digiPicks = [];
     let digiPickInfo = getDigiPickLocations();
 
     // Loop through the ringsInfo and set bits for the discovered rings
     for (let i = 0; i < ringsInfo.length; i++) {
-        const ringInt = getRingBits(ringsInfo[i].center, ringsInfo[i].radius, 'ring' + ringsInfo[i].index);
+        const ringInt = getRingBits(ringsInfo[i].x, ringsInfo[i].y, ringsInfo[i].radius, 'ring' + ringsInfo[i].index);
         if (!hasMoreThanThreeConsecutiveZeros( intToPaddedBinary(ringInt) ))
         {
             rings.push(ringInt);    
@@ -429,15 +774,10 @@ function solvePuzzle() {
         }
     }
 
+    console.log("rings:");
     console.log(rings);
+    console.log("picks:");
     console.log(digiPicks);
-
-    // let numKeys = parseInt(document.getElementById('numPicks').value);
-    //let numKeyholes = parseInt(document.getElementById('numRings').value);
-
-    //let visiblePicks = digiPicks.slice(0, digiPicks.length);
-    //let availablePicks = [...visiblePicks];  // Create a copy so we can subtract for depth first a inital copy of selectedKeys
-    //let visibleRings = rings.slice(0, rings.length);
 
     let actions = [];
 
@@ -469,6 +809,7 @@ function solvePuzzle() {
     }
 
     // Print out the possible actions
+    console.log("actions;");
     console.log(actions);
 
     // After we have a list of possible horizon actions, call the function to get the DFS(depth first search) actions
@@ -492,170 +833,51 @@ function solvePuzzle() {
         }
     }
 
-    drawActionBits(ctx, digiPickInfo, solvedActions);
+    drawActionBits(screenshotCtx, digiPickInfo, solvedActions);
 }
         
-function ransacCircleDetection(points, minimumRadius, maximumRadius, iterations, threshold) {
-    const EPS = 1e-9;
-
-    function distance(p1, p2) {
-        return Math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2);
-    }
-
-    function circleCenter(p1, p2, p3) {
-        let ax = p1[0], ay = p1[1];
-        let bx = p2[0], by = p2[1];
-        let cx = p3[0], cy = p3[1];
-        
-        let d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
-        if (Math.abs(d) < EPS) return null;
-
-        let ux = ((ax * ax + ay * ay) * (by - cy) + (bx * bx + by * by) * (cy - ay) + (cx * cx + cy * cy) * (ay - by)) / d;
-        let uy = ((ax * ax + ay * ay) * (cx - bx) + (bx * bx + by * by) * (ax - cx) + (cx * cx + cy * cy) * (bx - ax)) / d;
-        
-        return [ux, uy];
-    }
-
-    let detectedCircles = [];
-    let remainingPoints = [...points];
-
-    while (remainingPoints.length >= 3) {
-        let bestCircle = null;
-        let maxInliers = 0;
-
-        for (let iter = 0; iter < iterations; iter++) {
-            let indices = [];
-            while (indices.length < 3) {
-                let randIndex = Math.floor(Math.random() * remainingPoints.length);
-                if (indices.indexOf(randIndex) === -1) {
-                    indices.push(randIndex);
-                }
-            }
-
-            let center = circleCenter(remainingPoints[indices[0]], remainingPoints[indices[1]], remainingPoints[indices[2]]);
-            if (!center) continue;
-
-            let radius = distance(center, remainingPoints[indices[0]]);
-            if (radius < minimumRadius || radius > maximumRadius) continue;
-
-            let inliers = [];
-            for (let i = 0; i < remainingPoints.length; i++) {
-                let d = distance(center, remainingPoints[i]);
-                if (Math.abs(d - radius) <= 5 + EPS) {
-                    inliers.push(remainingPoints[i]);
-                }
-            }
-
-            if (inliers.length > threshold && inliers.length > maxInliers) {
-                bestCircle = { center: center, radius: radius, inliers: inliers };
-                maxInliers = inliers.length;
-            }
-        }
-
-        if (bestCircle) {
-            detectedCircles.push(bestCircle);
-            remainingPoints = remainingPoints.filter(pt => !bestCircle.inliers.includes(pt));
-        } else {
-            break;
-        }
-    }
-
-    return detectedCircles;
-}
-
-function getBestCircles(circles, count) {
-    // Sort circles by the number of inliers in descending order
-    const sortedCircles = circles.sort((a, b) => b.inliers.length - a.inliers.length);
-
-    // Return the top 'count' circles
-    return sortedCircles.slice(0, count);
-}
        
-function getPossibleCirclePoints(targetColor, tolerance) {
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Function to check if a pixel is close enough to the target color
-    function isCloseToColor(r, g, b, target, tolerance) {
-        return Math.abs(r - target.r) <= tolerance &&
-               Math.abs(g - target.g) <= tolerance &&
-               Math.abs(b - target.b) <= tolerance;
-    }
-    
-    let points = [];
-    
-    for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-            const index = (y * canvas.width + x) * 4;
-            const r = imageData.data[index];
-            const g = imageData.data[index + 1];
-            const b = imageData.data[index + 2];
-            
-            if (isCloseToColor(r, g, b, targetColor, tolerance)) {
-                points.push([x, y]);
-            }
-        }
-    }
-    
-    return points;
-}
-
-function getRingsInfo() {
-    const urlParams = new URLSearchParams(window.location.search);
-    let r_r0 = parseInt(urlParams.get('r_r0') || 0); // Counting outwards to inwards, the radius of the outer most ring
-    let r_r1 = parseInt(urlParams.get('r_r1') || 0); // the radius of ring 1
-    let r_r2 = parseInt(urlParams.get('r_r2') || 0); // the radius of ring 2
-    let r_r3 = parseInt(urlParams.get('r_r3') || 0); // the radius of ring 3
-    let r_x = parseInt(urlParams.get('r_x') || 0); // x coordinate for center of the rings
-    let r_y = parseInt(urlParams.get('r_y') || 0); // y coordinate for center of the rings
-    let r_c = parseInt(urlParams.get('r_c') || 0); // ring count
-
-    const targetColor = {r: 180, g: 213, b: 201}; // gray represents the outer gray/white circle for the rings
-    const tolerance = 10;  // You can adjust this value
-
-    let points = getPossibleCirclePoints(targetColor, tolerance) 
-    
-    // points, minimumRadius, maximumRadius, iterations, threshold=minimum numberofpoints
-    let possibleRings = ransacCircleDetection(points, 73, 300, 1000, 120); 
-    let bestMatch = getBestCircles(possibleRings, 1)[0];
-    let bestMatchCenterX = bestMatch.center[0].toFixed(0);
-    let bestMatchCenterY = bestMatch.center[1].toFixed(0);
-    let bestMatchRadius = bestMatch.radius.toFixed(0);
+function getRingLocations() {
+    const params = new URLSearchParams(window.location.search);
+    let r_r0 = parseInt(params.get('r_r0') || 0); // Counting outwards to inwards, the radius of the outer most ring
+    let r_r1 = parseInt(params.get('r_r1') || 0); // the radius of ring 1
+    let r_r2 = parseInt(params.get('r_r2') || 0); // the radius of ring 2
+    let r_r3 = parseInt(params.get('r_r3') || 0); // the radius of ring 3
+    let r_x = parseInt(params.get('r_x') || 0); // x coordinate for center of the rings
+    let r_y = parseInt(params.get('r_y') || 0); // y coordinate for center of the rings
+    let r_c = parseInt(params.get('r_c') || 0); // ring count
 
     let ringLocations = [
-        // Adjust the % * percentages to make the dots align to the rings
-        { index: 0, center: [bestMatchCenterX, bestMatchCenterY], radius: Math.round(bestMatchRadius - (.02 * bestMatchRadius)) },
-        { index: 1, center: [bestMatchCenterX, bestMatchCenterY], radius: Math.round(bestMatchRadius - (.19 * bestMatchRadius)) },
-        { index: 2, center: [bestMatchCenterX, bestMatchCenterY], radius: Math.round(bestMatchRadius - (.35 * bestMatchRadius)) },
-        { index: 3, center: [bestMatchCenterX, bestMatchCenterY], radius: Math.round(bestMatchRadius - (.48 * bestMatchRadius)) },
-        { index: 4, center: [bestMatchCenterX, bestMatchCenterY], radius: Math.round(bestMatchRadius - (.60 * bestMatchRadius)) },
+        { index: 0, x: r_x, y: r_y, radius: r_r0 },
+        { index: 1, x: r_x, y: r_y, radius: r_r1 },
+        { index: 2, x: r_x, y: r_y, radius: r_r2 },
+        { index: 3, x: r_x, y: r_y, radius: r_r3 },
     ];
 
     // Draw a center dot for the rings
-    drawPixelWithText(bestMatchCenterX, bestMatchCenterY, `R: ${bestMatchRadius} _0`);
+    drawPixelWithText(r_x, r_y, `!_0`); // ! bang makes the text not render but _0 give us red color still
 
     let returnRings = ringLocations.slice(0, r_c);
-    if (r_c < 2 || returnRings.length === 0) {
-        document.getElementById("outputBox").value = "No rings found, check URL parameters.";
-    }
+
     console.log("ring locations:");
     console.log(returnRings);
-    outputLog(`${returnRings.length} rings`);
-    
+
     return returnRings;
 }
 
 function getDigiPickLocations() {
-    const urlParams = new URLSearchParams(window.location.search);
-    let dp_radius = parseInt(urlParams.get('dp_radius') || 0); // the radius of a digipick circle just 2 pixels smaller than the gray tick marks
-    let dp_x = parseInt(urlParams.get('dp_x') || 0); // x coordinate for center of topleft digipick circle
-    let dp_y = parseInt(urlParams.get('dp_y') || 0); // y coordinate for center of topleft digipick circle
-    let dp_hd = parseInt(urlParams.get('dp_hd') || 0); // horizontal distance between digipick circle centers
-    let dp_vd = parseInt(urlParams.get('dp_vd') || 0); // vertical distance between digipick circle centers
-    let dp_c = parseInt(urlParams.get('dp_c') || 0); // digipick count
+    const params = new URLSearchParams(window.location.search);
+    let dp_radius = parseInt(params.get('dp_radius') || 0); // the radius of a digipick circle just 2 pixels smaller than the gray tick marks
+    let dp_x = parseInt(params.get('dp_x') || 0); // x coordinate for center of topleft digipick circle
+    let dp_hd = parseInt(params.get('dp_hd') || 0); // horizontal distance between digipick circle centers
+    let dp_vd = parseInt(params.get('dp_vd') || 0); // vertical distance between digipick circle centers
+    let dp_c = parseInt(params.get('dp_c') || 0); // digipick count
+    let dp_d = parseInt(params.get('dp_d') || 0); // digipick difficulty
 
+    // Get the y coordinate for center of topleft digipick circle from the URL
+    let dp_y = parseInt(params.get(`dp_y${dp_d}`) || 0);
+    
     let picks  = [
         { index: 0, x: dp_x+(0*dp_hd), y: dp_y+(0*dp_vd), radius: dp_radius },
         { index: 1, x: dp_x+(1*dp_hd), y: dp_y+(0*dp_vd), radius: dp_radius },
@@ -675,15 +897,13 @@ function getDigiPickLocations() {
 
     let returnPicks = picks.slice(0, dp_c);
     if (dp_c < 4 || returnPicks.length === 0) {
-        document.getElementById("outputBox").value = "No digipicks found, check URL parameters";
+        console.log("No digipicks found, check URL parameters");
     }
     console.log("pick locations:");
     console.log(returnPicks);
-    outputLog(`${returnPicks.length} picks`);
     return returnPicks;
 }
-        
+
     </script>
 </body>
-
 </html>
