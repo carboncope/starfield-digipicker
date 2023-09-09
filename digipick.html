@@ -175,16 +175,15 @@ class Utilities {
             params.set(pair.key, pair.value);
         });
     
-        // Update the content of the div holding URL parameters
-        const paramsDiv = document.getElementById("urlParameters");
-        paramsDiv.textContent = params.toString();
+        // Store the updated parameters in localStorage
+        localStorage.setItem('urlParameters', params.toString());
     
         // Update the current URL without reloading the page
         try {
             window.history.replaceState({}, '', '?' + params.toString());
         } catch (error) {
             // Handle any errors that might arise from trying to update window.history
-            console.warn("Failed to update window.history. Using div as fallback.");
+            console.warn("Failed to update window.history. Using localStorage as fallback.");
         }
     }
 
@@ -195,16 +194,18 @@ class Utilities {
      */
     getURLParameters() {
         let urlParams;
-
+    
         // Try using URLSearchParams first
         urlParams = new URLSearchParams(window.location.search);
-
-        // Check if the page is hosted on htmlpreview.github.io and the original params are empty
-        if (window.location.hostname.includes('htmlpreview.github.io') && !Array.from(urlParams).length) {
-            const paramsDiv = document.getElementById("urlParameters");
-            urlParams = new URLSearchParams(paramsDiv.textContent);
+    
+        // If the original params are empty, try to retrieve them from localStorage
+        if (!Array.from(urlParams).length) {
+            const storedParams = localStorage.getItem('urlParameters');
+            if (storedParams) {
+                urlParams = new URLSearchParams(storedParams);
+            }
         }
-
+    
         return urlParams;
     }
     
