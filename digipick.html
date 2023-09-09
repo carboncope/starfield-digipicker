@@ -193,13 +193,10 @@ class Utilities {
      * @returns {URLSearchParams} The URLSearchParams object with all parameters.
      */
     getURLParameters() {
-        let urlParams;
+        let urlParams = new URLSearchParams(window.location.search);
     
-        // Try using URLSearchParams first
-        urlParams = new URLSearchParams(window.location.search);
-    
-        // If the original params are empty, try to retrieve them from localStorage
-        if (!Array.from(urlParams).length) {
+        // Check if the page is hosted on htmlpreview.github.io
+        if (window.location.hostname.includes('htmlpreview.github.io')) {
             const storedParams = localStorage.getItem('urlParameters');
             if (storedParams) {
                 urlParams = new URLSearchParams(storedParams);
