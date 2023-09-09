@@ -152,6 +152,9 @@
             <button>LOAD...</button>
             <input type="file" id="loadImageInput" style="display: none;">
         </div>
+
+        <!-- Div to hold URL parameters -->
+        <div id="urlParameters" style="display: none;"></div>
         
         <canvas id="resultCanvas"></canvas>
     </div>
@@ -172,10 +175,39 @@ class Utilities {
             params.set(pair.key, pair.value);
         });
     
+        // Update the content of the div holding URL parameters
+        const paramsDiv = document.getElementById("urlParameters");
+        paramsDiv.textContent = params.toString();
+    
         // Update the current URL without reloading the page
-        window.history.replaceState({}, '', '?' + params.toString());
+        try {
+            window.history.replaceState({}, '', '?' + params.toString());
+        } catch (error) {
+            // Handle any errors that might arise from trying to update window.history
+            console.warn("Failed to update window.history. Using div as fallback.");
+        }
     }
 
+    /**
+     * Retrieves all parameters from the URL or div fallback.
+     * 
+     * @returns {URLSearchParams} The URLSearchParams object with all parameters.
+     */
+    getURLParameters() {
+        let urlParams;
+
+        // Try using URLSearchParams first
+        urlParams = new URLSearchParams(window.location.search);
+
+        // Check if the page is hosted on htmlpreview.github.io and the original params are empty
+        if (window.location.hostname.includes('htmlpreview.github.io') && !Array.from(urlParams).length) {
+            const paramsDiv = document.getElementById("urlParameters");
+            urlParams = new URLSearchParams(paramsDiv.textContent);
+        }
+
+        return urlParams;
+    }
+    
     /**
     * Draws the colored bars on the left
     */
@@ -273,7 +305,7 @@ class Utilities {
 // CONSTANTS
 // -------------------------------------------------------        
 const utilities = new Utilities();
-const params = new URLSearchParams(window.location.search);
+const params = utilities.getURLParameters();
 
 const bgCanvas = document.getElementById('backgroundCanvas');
 const screenshotCanvas = document.getElementById('screenshotCanvas');
@@ -839,7 +871,7 @@ function solveLock() {
        
 
 function getRingLocations() {
-    const params = new URLSearchParams(window.location.search);
+    const params = utilities.getURLParameters();
     let r_r0 = parseInt(params.get('r_r0') || 0); // Counting outwards to inwards, the radius of the outer most ring
     let r_r1 = parseInt(params.get('r_r1') || 0); // the radius of ring 1
     let r_r2 = parseInt(params.get('r_r2') || 0); // the radius of ring 2
@@ -867,7 +899,7 @@ function getRingLocations() {
 }
 
 function getDigiPickLocations() {
-    const params = new URLSearchParams(window.location.search);
+    const params = utilities.getURLParameters();
     let dp_radius = parseInt(params.get('dp_radius') || 0); // the radius of a digipick circle just 2 pixels smaller than the gray tick marks
     let dp_x = parseInt(params.get('dp_x') || 0); // x coordinate for center of topleft digipick circle
     let dp_hd = parseInt(params.get('dp_hd') || 0); // horizontal distance between digipick circle centers
