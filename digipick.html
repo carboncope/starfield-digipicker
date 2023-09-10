@@ -164,7 +164,8 @@
         <div class="radioOptions2">
             <input type="radio" id="1920x1080" name="1920x1080" value="1920x1080">
             <label for="1920x1080">1920x1080</label>
-            
+            <input type="radio" id="2560x1440" name="2560x1440" value="2560x1440">
+            <label for="2560x1440">2560x1440</label>
         </div>
         <div class="step3">SELECT SCREENSHOT</div>
         <div id="loadImageButton">
@@ -174,6 +175,51 @@
         <canvas id="resultCanvas"></canvas>
     </div>
     <script>
+// Resolution button events
+// -------------------------------------------------------
+const resolutionParameters = {
+    '1920x1080': [
+        { key: 'r_x', value: 960 }, // lock rings center x location
+        { key: 'r_y', value: 540 }, // lock rings center y location
+        { key: 'r_r0', value: 204 }, // outer most ring radius
+        { key: 'r_r1', value: 167 },
+        { key: 'r_r2', value: 134 },
+        { key: 'r_r3', value: 99 }, // inner most ring radius
+
+        { key: 'dp_radius', value: 39 }, // digipick ring radius
+        { key: 'dp_x', value: 1405 }, // top left digipick ring center x location
+        { key: 'dp_y0', value: 560 }, // y0 = y offset for novice difficulty
+        { key: 'dp_y1', value: 510 }, // y1 = y offset for advanced difficulty
+        { key: 'dp_y2', value: 460 }, // y2 = y offset for expert difficulty
+        { key: 'dp_y3', value: 410 }, // y3 = y offset for master difficulty
+        { key: 'dp_hd', value: 113 }, // horizontal distance between digipick circle centers
+        { key: 'dp_vd', value: 111 }  // vertical distance between digipick circle centers
+    ],
+	'2560x1440': [
+        { key: 'r_x', value: 1280 }, // lock rings center x location
+        { key: 'r_y', value: 720 }, // lock rings center y location
+        { key: 'r_r0', value: 273 }, // outer most ring radius
+        { key: 'r_r1', value: 223 },
+        { key: 'r_r2', value: 133 }, // FIX ME
+        { key: 'r_r3', value: 99 }, // inner most ring radius FIX ME
+
+        { key: 'dp_radius', value: 51 }, // digipick ring radius
+        { key: 'dp_x', value: 1873 }, // top left digipick ring center x location
+        { key: 'dp_y0', value: 747 }, // y0 = y offset for novice difficulty
+        { key: 'dp_y1', value: 510 }, // y1 = y offset for advanced difficulty FIX ME
+        { key: 'dp_y2', value: 460 }, // y2 = y offset for expert difficulty FIX ME
+        { key: 'dp_y3', value: 410 }, // y3 = y offset for master difficulty FIX ME
+        { key: 'dp_hd', value: 151 }, // horizontal distance between digipick circle centers
+        { key: 'dp_vd', value: 111 }  // vertical distance between digipick circle centers FIX ME
+    ]
+};
+for (let resolution in resolutionParameters) {
+    document.getElementById(resolution).addEventListener('click', function() {
+        utilities.updateURLParameters(resolutionParameters[resolution]);
+    });
+}
+
+
 class Utilities {
 
     /**
@@ -376,36 +422,6 @@ for (let level in levelParameters) {
         utilities.updateURLParameters(levelParameters[level]);
     });
 }
-
-// Resolution button events
-// -------------------------------------------------------
-const resolutionParameters = {
-    '1920x1080': [
-        { key: 'r_x', value: 960 }, // lock rings center x location
-        { key: 'r_y', value: 540 }, // lock rings center y location
-        { key: 'r_r0', value: 204 }, // outer most ring radius
-        { key: 'r_r1', value: 167 },
-        { key: 'r_r2', value: 134 },
-        { key: 'r_r3', value: 99 }, // inner most ring radius
-
-        { key: 'dp_radius', value: 39 }, // digipick ring radius
-        { key: 'dp_x', value: 1405 }, // top left digipick ring center x location
-        { key: 'dp_y0', value: 560 }, // y0 = y offset for novice difficulty
-        { key: 'dp_y1', value: 510 }, // y1 = y offset for advanced difficulty
-        { key: 'dp_y2', value: 460 }, // y2 = y offset for expert difficulty
-        { key: 'dp_y3', value: 410 }, // y3 = y offset for master difficulty
-        { key: 'dp_hd', value: 113 }, // horizontal distance between digipick circle centers
-        { key: 'dp_vd', value: 111 }  // vertical distance between digipick circle centers
-    ],
-};
-
-for (let resolution in resolutionParameters) {
-    document.getElementById(resolution).addEventListener('click', function() {
-        utilities.updateURLParameters(resolutionParameters[resolution]);
-    });
-}
-
-
         
 // Load button event
 // -------------------------------------------------------
