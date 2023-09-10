@@ -63,7 +63,7 @@
     .radioOptions2 label {
         background-color: rgba(37, 37, 37, 0.5);
         color: white;
-        border: 1px solid rgb(237, 237, 237);
+        border: 2px solid rgb(237, 237, 237);
         border-radius: 5px;
         padding: 10px 15px;
         cursor: pointer;
@@ -81,6 +81,25 @@
     .radioOptions1 input[type="radio"]:checked + label,
     .radioOptions2 input[type="radio"]:checked + label {
         background-color: rgba(37, 37, 37);
+    }
+
+    .radioOptions1 input[type="radio"]:checked + label,
+    .radioOptions2 input[type="radio"]:checked + label {
+        background-color: rgba(37, 37, 37);
+        position: relative; /* Needed to position the pseudo-element correctly */
+    }
+    
+    .radioOptions1 input[type="radio"]:checked + label::before,
+    .radioOptions2 input[type="radio"]:checked + label::before {
+        content: "";  /* This is required for the pseudo-element to appear */
+        position: absolute;
+        left: 0; 
+        top: 0; 
+        bottom: 0;
+        width: 10%; /* Set the width to 10% of the button's width */
+        background-color: white; 
+        border-top-left-radius: 2px;  /* Match the rounded corners of the label */
+        border-bottom-left-radius: 2px;
     }
     
     button {
@@ -149,13 +168,9 @@
         </div>
         <div class="step3">SELECT SCREENSHOT</div>
         <div id="loadImageButton">
-            <button>LOAD...</button>
+            <button>LOAD</button>
             <input type="file" id="loadImageInput" style="display: none;">
         </div>
-
-        <!-- Div to hold URL parameters -->
-        <div id="urlParameters" style="display: none;"></div>
-        
         <canvas id="resultCanvas"></canvas>
     </div>
     <script>
@@ -370,7 +385,7 @@ const resolutionParameters = {
         { key: 'r_y', value: 540 }, // lock rings center y location
         { key: 'r_r0', value: 204 }, // outer most ring radius
         { key: 'r_r1', value: 167 },
-        { key: 'r_r2', value: 133 },
+        { key: 'r_r2', value: 134 },
         { key: 'r_r3', value: 99 }, // inner most ring radius
 
         { key: 'dp_radius', value: 39 }, // digipick ring radius
@@ -391,10 +406,50 @@ for (let resolution in resolutionParameters) {
 }
 
 
+        
 // Load button event
 // -------------------------------------------------------
+function startDotsAnimation(button, interval) {
+    let dots = '.';
+    const maxDots = 3;
+
+
+    // Once the function completes or some other condition is met, you can stop the animation.
+    // You may want to adjust this part based on when and how you want to stop the dots animation.
+    setTimeout(() => {
+        clearInterval(interval);
+        button.textContent = 'LOAD';
+    }, 10000);  // For demonstration, stopping after 10 seconds
+}
+
 document.querySelector('#loadImageButton button').addEventListener('click', function() {
+    // let dots = '.';
+    // const maxDots = 3;
+    const button = document.getElementById('loadImageButton').querySelector('button');
+
+    // const interval = setInterval(() => {
+    //     button.textContent = `LOAD${dots}`;
+    //     dots += '.';
+    //     if (dots.length > maxDots) {
+    //         dots = '.';
+    //     }
+    // }, 1000);
+
+    button.textContent = 'LOADING...';
+  
     document.getElementById('loadImageInput').click();
+
+    
+    // // Once the solver completes, clear the interval and reset the button's text
+    // clearInterval(interval);
+
+    // // Once the solver completes stop the animation.
+    // setTimeout(() => {
+    //     clearInterval(interval);
+    //     button.textContent = 'LOAD';
+    // }, 10000);  // For demonstration, stopping after 10 seconds
+    
+
 });
 
 document.getElementById('loadImageInput').addEventListener('change', function(e) {
@@ -499,7 +554,7 @@ function drawPixelWithText(x, y, text) {
         screenshotCtx.fillStyle = 'red';
     }
 
-    screenshotCtx.fillRect(x, y, 1, 1);
+    screenshotCtx.fillRect(x, y, 2, 2);
 
     // Drawing the provided text 5 pixels above the pixel
     screenshotCtx.font = '6px sans-serif';
@@ -570,28 +625,55 @@ function intToPaddedBinary(num) {
     return (num >>> 0).toString(2).padStart(32, '0');
 }
 
-function getRingBits(centerX, centerY, radius, context) {
-    let bits = [];
-    let totalR = 0;
-    let totalG = 0;
-    let totalB = 0;
+function getRingAverageColor(centerX, centerY, radius, context, N) {
+    let sampledColors = [];
 
-    // Calculate the average color from the 32 sampled colors
+    // Sample 32 colors from around the circle
     for (let i = 0; i < 32; i++) {
         let angle = (i * 11.25) * (Math.PI / 180);
         let x = parseInt(centerX) + (radius * Math.cos(angle));
         let y = parseInt(centerY) + (radius * Math.sin(angle));
 
-        let sampledColor = getPixelColor(x, y, screenshotCtx, 1); // lean = 1 to lighter pixels
-
-        totalR += sampledColor[0];
-        totalG += sampledColor[1];
-        totalB += sampledColor[2];
+        let color = getPixelColor(x, y, screenshotCtx, 1);
+        sampledColors.push(color);
     }
 
-    // average color is sampled from around the ring, should end up as the light blue/gray colors
-    const averageColor = [Math.round(totalR / 32), Math.round(totalG / 32), Math.round(totalB / 32)];
-    
+    // Sort the sampled colors based on brightness (using the formula for relative luminance)
+    sampledColors.sort((a, b) => {
+        const brightnessA = 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+        const brightnessB = 0.2126 * b[0] + 0.7152 * b[1] + 0.0722 * b[2];
+        return brightnessB - brightnessA; // Sort in descending order
+    });
+
+    let totalR = 0;
+    let totalG = 0;
+    let totalB = 0;
+    let count = Math.abs(N);
+
+    if (N > 0) { // If N is positive, take the top N brightest colors
+        for (let i = 0; i < count && i < 32; i++) {
+            totalR += sampledColors[i][0];
+            totalG += sampledColors[i][1];
+            totalB += sampledColors[i][2];
+        }
+    } else { // If N is negative, take the darkest N colors
+        for (let i = 32 - count; i < 32 && i >= 0; i++) {
+            totalR += sampledColors[i][0];
+            totalG += sampledColors[i][1];
+            totalB += sampledColors[i][2];
+        }
+    }
+
+    const averageColor = [Math.round(totalR / count), Math.round(totalG / count), Math.round(totalB / count)];
+
+    return averageColor;
+}
+        
+function getRingBits(centerX, centerY, radius, context) {
+    let bits = [];
+    const sampled1Color = getRingAverageColor(centerX, centerY, radius, context, 10); // TWEAK very little maybe up or down +-1  12 made the ring 2 white
+    const sampled0Color = getRingAverageColor(centerX, centerY, radius, context, -1); // TWEAK very little maybe up or down +-1
+
     // Use the average color to determine the bit value for all the sampled colors
     for (let i = 0; i < 32; i++) {
         let angle = (i * 11.25) * (Math.PI / 180);
@@ -599,10 +681,7 @@ function getRingBits(centerX, centerY, radius, context) {
         let y = parseInt(centerY) + (radius * Math.sin(angle));
 
         let sampledColor = getPixelColor(x, y, screenshotCtx, 1); // lean = 1 to lighter pixels
-
-        let ringZeroColor = [25, 33, 43]; // dark gray, almost black background for blue circles
-
-        let bitValue = closestToColor(sampledColor, ringZeroColor, averageColor);
+        let bitValue = closestToColor(sampledColor, sampled0Color, sampled1Color);
 
         drawPixelWithText(x, y, "!" + i + "_" + bitValue); // prefix text with ! to make it not draw text
         bits.push(bitValue);
@@ -610,6 +689,7 @@ function getRingBits(centerX, centerY, radius, context) {
 
     return arrayToBinaryInt(bits);
 }
+        
 
 function getDigiBits(centerX, centerY, radius, context) {
     let bits = [];
@@ -804,13 +884,42 @@ function solveLock() {
     let digiPicks = [];
     let digiPickInfo = getDigiPickLocations();
 
+    let ringInt = 0;
+    
     // Loop through the ringsInfo and set bits for the discovered rings
     for (let i = 0; i < ringsInfo.length; i++) {
-        const ringInt = getRingBits(ringsInfo[i].x, ringsInfo[i].y, ringsInfo[i].radius, 'ring' + ringsInfo[i].index);
-        if (!hasMoreThanThreeConsecutiveZeros( intToPaddedBinary(ringInt) ))
-        {
-            rings.push(ringInt);    
+        // An array to store the results from getRingBits for each sub-loop iteration
+        let ringBitsArray = [];
+    
+        // Loop from ringsInfo[i].radius - 2 to ringsInfo[i].radius + 2
+        for (let r = ringsInfo[i].radius - 2; r <= ringsInfo[i].radius + 2; r++) {
+            ringBitsArray.push(getRingBits(ringsInfo[i].x, ringsInfo[i].y, r, 'ring' + ringsInfo[i].index));
         }
+    
+        // Find the numbers that appear more than once in ringBitsArray
+        let freqMap = {};
+        for (let j = 0; j < ringBitsArray.length; j++) {
+            freqMap[ringBitsArray[j]] = (freqMap[ringBitsArray[j]] || 0) + 1;
+        }
+    
+        let matchingNumbers = [];
+        for (let num in freqMap) {
+            if (freqMap[num] > 1) {
+                matchingNumbers.push(num);
+            }
+        }
+    
+        // We have a sample of ring colors that may have more than one binary result
+        // We take the ring binary representation that occurs more than onces
+        // Assuming that's the requirement, if you want more or less, you can adjust this.
+        if (matchingNumbers.length >= 2) {
+            ringInt = matchingNumbers[0]; // Or do any other operation with the two matching numbers
+            rings.push(ringInt);
+        } else if (matchingNumbers.length == 1) {
+            // We didnt have any variance and getRingBits returned a really solid result
+            rings.push(ringBitsArray[0]); 
+        }
+ 
     }
 
     // Loop through the digiPickInfo and set bits for the discovered digiPicks
@@ -861,8 +970,9 @@ function solveLock() {
     console.log(actions);
 
     // After we have a list of possible horizon actions, call the function to get the DFS(depth first search) actions
-    let solvedActions = [];  // Array to store the final set of actions
+    let solvedActions = [];  // Array to store the final set of actions  
 
+    // Loop through rings and solve
     for (let i = 0; i < rings.length; i++) {
         let ring = rings[i];
 
@@ -882,6 +992,9 @@ function solveLock() {
     }
 
     drawActionBits(screenshotCtx, digiPickInfo, solvedActions);
+
+    const button = document.getElementById('loadImageButton').querySelector('button');
+    button.textContent = 'LOAD';
 }
         
        
