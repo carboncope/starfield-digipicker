@@ -309,7 +309,7 @@ class Utilities {
                 bgCtx.font = "20px Arial";
                 bgCtx.fillText("DIGIPICKER SYSTEM", startX, startY - 20);
             }
-    
+
             const controlPoint1X = startX;
             const controlPoint1Y = bendStartY + (i * (barWidth + offsetX));
             const controlPoint2X = startX - controlPoint2XOffset;
@@ -409,47 +409,17 @@ for (let resolution in resolutionParameters) {
         
 // Load button event
 // -------------------------------------------------------
-function startDotsAnimation(button, interval) {
-    let dots = '.';
-    const maxDots = 3;
-
-
-    // Once the function completes or some other condition is met, you can stop the animation.
-    // You may want to adjust this part based on when and how you want to stop the dots animation.
-    setTimeout(() => {
-        clearInterval(interval);
-        button.textContent = 'LOAD';
-    }, 10000);  // For demonstration, stopping after 10 seconds
-}
-
 document.querySelector('#loadImageButton button').addEventListener('click', function() {
-    // let dots = '.';
-    // const maxDots = 3;
     const button = document.getElementById('loadImageButton').querySelector('button');
 
-    // const interval = setInterval(() => {
-    //     button.textContent = `LOAD${dots}`;
-    //     dots += '.';
-    //     if (dots.length > maxDots) {
-    //         dots = '.';
-    //     }
-    // }, 1000);
-
     button.textContent = 'LOADING...';
-  
+    
+    setTimeout(() => {
+        //clearInterval(interval);
+        button.textContent = 'LOAD';
+    }, 10000);  // For demonstration, stopping after 10 seconds
+ 
     document.getElementById('loadImageInput').click();
-
-    
-    // // Once the solver completes, clear the interval and reset the button's text
-    // clearInterval(interval);
-
-    // // Once the solver completes stop the animation.
-    // setTimeout(() => {
-    //     clearInterval(interval);
-    //     button.textContent = 'LOAD';
-    // }, 10000);  // For demonstration, stopping after 10 seconds
-    
-
 });
 
 document.getElementById('loadImageInput').addEventListener('change', function(e) {
