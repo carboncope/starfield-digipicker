@@ -196,7 +196,7 @@ const resolutionParameters = {
         { key: 'dp_hd', value: 113 }, // horizontal distance between digipick circle centers
         { key: 'dp_vd', value: 111 }  // vertical distance between digipick circle centers
     ],
-	'2560x1440': [
+    '2560x1440': [
         { key: 'r_x', value: 1280 }, // lock rings center x location
         { key: 'r_y', value: 720 }, // lock rings center y location
         { key: 'r_r0', value: 273 }, // outer most ring radius
@@ -207,11 +207,11 @@ const resolutionParameters = {
         { key: 'dp_radius', value: 51 }, // digipick ring radius
         { key: 'dp_x', value: 1873 }, // top left digipick ring center x location
         { key: 'dp_y0', value: 747 }, // y0 = y offset for novice difficulty
-        { key: 'dp_y1', value: 510 }, // y1 = y offset for advanced difficulty FIX ME
+        { key: 'dp_y1', value: 680 }, // y1 = y offset for advanced difficulty
         { key: 'dp_y2', value: 460 }, // y2 = y offset for expert difficulty FIX ME
         { key: 'dp_y3', value: 410 }, // y3 = y offset for master difficulty FIX ME
         { key: 'dp_hd', value: 151 }, // horizontal distance between digipick circle centers
-        { key: 'dp_vd', value: 111 }  // vertical distance between digipick circle centers FIX ME
+        { key: 'dp_vd', value: 147 }  // vertical distance between digipick circle centers
     ]
 };
 for (let resolution in resolutionParameters) {
@@ -670,7 +670,12 @@ function getRingBits(centerX, centerY, radius, context) {
         let sampledColor = getPixelColor(x, y, screenshotCtx, 1); // lean = 1 to lighter pixels
         let bitValue = closestToColor(sampledColor, sampled0Color, sampled1Color);
 
-        drawPixelWithText(x, y, "!" + i + "_" + bitValue); // prefix text with ! to make it not draw text
+        if (parseInt(bitValue) === 1)
+        {
+            // Only draw the white bits, the red bits will show as number text when solver is finished and drawRingSolvedActions is called
+            drawPixelWithText(x, y, "!" + i + "_" + bitValue); // prefix text with ! to make it not draw text
+        }
+        
         bits.push(bitValue);
     }
 
@@ -823,7 +828,7 @@ function recursiveSolver(actions, ring, currentActions = []) {
     return shortestSolution;
 }
 
-function drawActionBits(ctx, digiPickInfo, greedyActions) {
+function drawDigiPickSolvedActionBits(ctx, digiPickInfo, greedyActions) {
     for (let order = 0; order < greedyActions.length; order++) {
         const action = greedyActions[order];
         let binaryStr = action.string; // Assuming the 'string' property of the action object holds the binary representation
@@ -857,6 +862,59 @@ function drawActionBits(ctx, digiPickInfo, greedyActions) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(order + 1, digiPick.x, digiPick.y); // 'order + 1' to make the numbering start from 1 instead of 0
+    }
+}
+
+function drawRingSolvedActions(ctx, actions) {
+    let ringsInfo = getRingLocations();
+    
+    // Loop through the actions in order
+    // For each action in actions
+    //  let targetRing = action.ring
+    //  
+    for (let actionIndex = 0; actionIndex < actions.length; actionIndex++) {
+        let action = actions[actionIndex];
+        let targetRing = action.ring
+        let binaryStr = action.string; // Assuming the 'string' property of the action object holds the binary representation
+
+        // Get the corresponding digiPick's center and radius details
+        //let digiPick = digiPickInfo[action.digipicknum];
+
+        let radius = ringsInfo[targetRing].radius;  // The radius of the ring
+
+        // Angle step for each bit
+        let angleStep = (2 * Math.PI) / 32;
+
+        for (let i = 0; i < 32; i++) {
+            let angle = angleStep * i;
+
+            // Calculate the position for the label
+            let x = ringsInfo[targetRing].x + radius * Math.cos(angle) - 2;  // minus 2 to center the 4x4 box
+            let y = ringsInfo[targetRing].y  + radius * Math.sin(angle) - 2;  // minus 2 to center the 4x4 box
+
+            // TODO draw the label
+            // Set fill color based on the bit value
+            //ctx.fillStyle = binaryStr[i] === '1' ? 'green' : 'black';
+            if (binaryStr[i] === '1')
+            {
+                // The binary string is a 1 which means the lock fits in this hole
+                screenshotCtx.fillStyle = 'red';
+                screenshotCtx.font = '20px sans-serif';
+                screenshotCtx.fillText(actionIndex + 1, x, y); // + 1 because arrays start at zero but humans dont
+                
+                //drawPixelWithText(x, y, `_0`); // ! bang makes the text not render but _0 give us red color still
+            }
+            
+            // Draw the 4x4 square
+            //ctx.fillRect(x, y, 4, 4);
+        }
+
+        // Drawing the order number in the middle of the circle
+        // ctx.fillStyle = 'red';
+        // ctx.font = '20px sans-serif';
+        // ctx.textAlign = 'center';
+        // ctx.textBaseline = 'middle';
+        // ctx.fillText(order + 1, digiPick.x, digiPick.y); // 'order + 1' to make the numbering start from 1 instead of 0
     }
 }
 
@@ -953,7 +1011,7 @@ function solveLock() {
     }
 
     // Print out the possible actions
-    console.log("actions;");
+    console.log("actions:");
     console.log(actions);
 
     // After we have a list of possible horizon actions, call the function to get the DFS(depth first search) actions
@@ -978,7 +1036,11 @@ function solveLock() {
         }
     }
 
-    drawActionBits(screenshotCtx, digiPickInfo, solvedActions);
+    console.log("solver actions:");
+    console.log(solvedActions);
+    
+    drawDigiPickSolvedActionBits(screenshotCtx, digiPickInfo, solvedActions);
+    drawRingSolvedActions(screenshotCtx, solvedActions);
 
     const button = document.getElementById('loadImageButton').querySelector('button');
     button.textContent = 'LOAD';
